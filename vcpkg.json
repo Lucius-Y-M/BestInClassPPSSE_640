@@ -1,0 +1,21 @@
+{
+    "name": "best-in-class-unofficial-update",
+    "version-string": "2.0.0",
+    "description": "Modifies the default behavior for setting the best in class flag for Skyrim SE.",
+    "homepage": "",
+    "license": "MIT",
+    "dependencies": [
+        "boost-stl-interfaces",
+        "fmt",
+        "rsm-binary-io",
+        "spdlog",
+        "xbyak"
+    ],
+    "builtin-baseline": "f9a99aa79c1309001e36572fa42d7d8edebfc451",
+    "overrides": [
+        {
+            "name": "xbyak",
+            "version": "7.23.1"
+        }
+    ]
+}
