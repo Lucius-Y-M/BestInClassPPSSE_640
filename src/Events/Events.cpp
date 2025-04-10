@@ -1,5 +1,7 @@
 #include "events.h"
 
+#include "Hooks/Hooks.h"
+
 namespace Events
 {
 	bool Install() {
@@ -39,18 +41,27 @@ namespace Events
 		shouldProcess = false;
 		CurrentMenu = ""sv;
 
-		if (!a_event) {
-			return Control::kContinue;
-		}
-		if (a_event->menuName != RE::InventoryMenu::MENU_NAME &&
-			a_event->menuName != RE::ContainerMenu::MENU_NAME && 
-			a_event->menuName != RE::BarterMenu::MENU_NAME) {
+		if (!a_event || !a_event->opening) {
 			return Control::kContinue;
 		}
 
-		if (a_event->opening) {
-			shouldProcess = true;
-			CurrentMenu = a_event->menuName;
+		const auto ui = RE::UI::GetSingleton();
+		if (!ui) {
+			return Control::kContinue;
+		}
+
+		const auto eventName = a_event->menuName;
+		if (eventName != RE::BarterMenu::MENU_NAME && 
+			eventName != RE::ContainerMenu::MENU_NAME &&
+			eventName != RE::InventoryMenu::MENU_NAME) {
+			return Control::kContinue;
+		}
+
+		shouldProcess = true;
+		CurrentMenu = eventName;
+
+		if (auto* hookManager = Hooks::BestInClassListener::GetSingleton(); hookManager) {
+			hookManager->SetMemberIfBestInClass(CurrentMenu);
 		}
 
 		return Control::kContinue;
