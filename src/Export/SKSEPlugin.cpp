@@ -31,7 +31,7 @@ namespace
 
 static void MessageEventCallback(SKSE::MessagingInterface::Message* a_msg)
 {
-	bool success = false;
+	bool success = true;
 	auto* itemVisitor = ItemVisitor::ItemListVisitor::GetSingleton();
 	if (!itemVisitor) {
 		SKSE::stl::report_and_fail("Failed to get Item Visitor singleton."sv);
