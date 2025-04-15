@@ -9,7 +9,7 @@ namespace Hooks
 	public:
 		static BestInClassListener* GetSingleton();
 		void                        Install();
-		void                        SetMemberIfBestInClass(const RE::BSFixedString& a_menuName);
+		void                        SetMemberIfBestInClass();
 
 		BestInClassListener(const BestInClassListener&) = delete;
 		BestInClassListener(BestInClassListener&&) = delete;
@@ -44,8 +44,6 @@ namespace Hooks
 
 			inline static REL::Relocation<decltype(&Thunk)> _func;
 		};
-
-		bool ShouldInvokeOriginal();
 	};
 
 	void Install();

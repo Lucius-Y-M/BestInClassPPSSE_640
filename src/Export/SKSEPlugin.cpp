@@ -1,5 +1,6 @@
 #include "Events/Events.h"
 #include "Hooks/Hooks.h"
+#include "ItemVisitor/ItemVisitor.h"
 
 namespace
 {
@@ -25,6 +26,18 @@ namespace
 
 		spdlog::set_default_logger(std::move(log));
 		spdlog::set_pattern("[%^%l%$] %v"s);
+	}
+}
+
+static void MessageEventCallback(SKSE::MessagingInterface::Message* a_msg)
+{
+	switch (a_msg->type) {
+	case SKSE::MessagingInterface::kDataLoaded:
+		Events::Install();
+		ItemVisitor::ItemListVisitor::GetSingleton()->PreloadForms();
+		break;
+	default:
+		break;
 	}
 }
 
@@ -74,6 +87,9 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	}
 
 	Hooks::Install();
-	Events::Install();
+
+	const auto messaging = SKSE::GetMessagingInterface();
+	messaging->RegisterListener(&MessageEventCallback);
+
 	return true;
 }

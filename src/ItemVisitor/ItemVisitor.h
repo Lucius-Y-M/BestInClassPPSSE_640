@@ -5,11 +5,22 @@ namespace ItemVisitor
 	class ItemListVisitor final : public SKSE::detail::TaskDelegate
 	{
 	public:
-		explicit ItemListVisitor(RE::BSTArray<RE::ItemList::Item*> a_itemList);
-		~ItemListVisitor() = default;
+		static ItemListVisitor* GetSingleton();
 
 		void Run() override;
 		void Dispose() override;
+
+		bool PreloadForms();
+		void QueueTask();
+
+		ItemListVisitor(const ItemListVisitor&) = delete;
+		ItemListVisitor(ItemListVisitor&&) = delete;
+		ItemListVisitor& operator=(const ItemListVisitor&) = delete;
+		ItemListVisitor& operator=(ItemListVisitor&&) = delete;
+
+	protected:
+		ItemListVisitor() = default;
+		~ItemListVisitor() = default;
 
 	private:
 		void Visit();
@@ -34,12 +45,14 @@ namespace ItemVisitor
 			float value{ -1.0f };
 
 			void Compare(RE::ItemList::Item* a_item, float a_rhs) {
-				if (a_rhs > value) {
+				if (a_rhs > value || !item) {
 					value = a_rhs;
 					item = a_item;
 				}
 			}
 		};
+
+		bool queued{ false };
 
 		// Cached variables
 		RE::PlayerCharacter* player;
@@ -57,6 +70,7 @@ namespace ItemVisitor
 
 		// Class vars
 		RE::BSTArray<RE::ItemList::Item*> _list{};
+		RE::BSFixedString m_menuName{ ""sv };
 
 		// Ammo definitions
 		static constexpr uint64_t ARMOR_CUIRASS_INDEX = 0;

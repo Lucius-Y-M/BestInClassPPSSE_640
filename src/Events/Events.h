@@ -10,7 +10,6 @@ namespace Events
 
 		RE::BSFixedString GetCurrentMenuName();
 		bool RegisterListener();
-		bool GetShouldProcess();
 
 		MenuListener(const MenuListener&) = delete;
 		MenuListener(MenuListener&&) = delete;
@@ -24,7 +23,6 @@ namespace Events
 	private:
 		RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override;
 
-		bool shouldProcess{ false };
-		RE::BSFixedString CurrentMenu{ ""sv};
+		RE::BSFixedString CurrentMenu{ ""sv };
 	};
 }

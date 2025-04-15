@@ -1,41 +1,109 @@
 #include "ItemVisitor.h"
 
+#include "Events/Events.h"
+
 namespace ItemVisitor
 {
-	ItemListVisitor::ItemListVisitor(const RE::BSTArray<RE::ItemList::Item*> a_itemList) {
-		_list = a_itemList;
+	ItemListVisitor* ItemListVisitor::GetSingleton() {
+		static ItemListVisitor singleton;
+		return std::addressof(singleton);
+	}
 
+	void ItemListVisitor::Run() {
+		auto* ui = RE::UI::GetSingleton();
+		if (!ui) {
+			logger::error("ItemListVisitor failed to get UI singleton."sv);
+			return;
+		}
+
+		if (m_menuName == RE::InventoryMenu::MENU_NAME) {
+			const auto menu = ui->GetMenu<RE::InventoryMenu>();
+			const auto menuList = menu ? menu->itemList : nullptr;
+			if (!menuList) {
+				logger::error("ItemListVisitor failed to get Inventory Menu list."sv);
+				return;
+			}
+			if (menuList->items.empty()) {
+				return;
+			}
+			_list = menuList->items;
+		}
+		else if (m_menuName == RE::BarterMenu::MENU_NAME) {
+			const auto menu = ui->GetMenu<RE::BarterMenu>();
+			const auto menuList = menu ? menu->itemList : nullptr;
+			if (!menuList) {
+				logger::error("ItemListVisitor failed to get Barter Menu list."sv);
+				return;
+			}
+			if (menuList->items.empty()) {
+				return;
+			}
+			_list = menuList->items;
+		}
+		else if (m_menuName == RE::ContainerMenu::MENU_NAME) {
+			const auto menu = ui->GetMenu<RE::ContainerMenu>();
+			const auto menuList = menu ? menu->itemList : nullptr;
+			if (!menuList) {
+				logger::error("ItemListVisitor failed to get Gift Menu list."sv);
+				return;
+			}
+			if (menuList->items.empty()) {
+				return;
+			}
+			_list = menuList->items;
+		}
+		else {
+			return;
+		}
+		Visit();
+	}
+
+	void ItemListVisitor::Dispose() {
+		m_menuName = "";
+		queued = false;
+		_list.clear();
+		best = std::array<StoredObject, ARRAY_SIZE>();
+	}
+
+	bool ItemListVisitor::PreloadForms() {
 		auto* gamePlayer = RE::PlayerCharacter::GetSingleton();
 		if (!gamePlayer) {
-			throw new std::exception("ItemListVisitor: Failed to cache player.");
+			logger::error("ItemListVisitor: Failed to cache player.");
+			return false;
 		}
 		player = gamePlayer;
 
 		auto* dobj = RE::BGSDefaultObjectManager::GetSingleton();
 		if (!dobj) {
-			throw new std::exception("ItemListVisitor: Failed to cache dobj.");
+			logger::error("ItemListVisitor: Failed to cache dobj.");
+			return false;
 		}
 		auto* eitherSlot = dobj->GetObject<RE::BGSEquipSlot>(RE::DEFAULT_OBJECT::kEitherHandEquip);
 		if (!eitherSlot) {
-			throw new std::exception("ItemListVisitor: Failed to cache either slot.");
+			logger::error("ItemListVisitor: Failed to cache either slot.");
+			return false;
 		}
 		either = eitherSlot;
 
 		auto* headKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ArmorHelmet"sv);
 		if (!headKeyword) {
-			throw new std::exception("ItemListVisitor: Failed to cache head keyword.");
+			logger::error("ItemListVisitor: Failed to cache head keyword.");
+			return false;
 		}
 		auto* cuirassKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ArmorCuirass"sv);
 		if (!cuirassKeyword) {
-			throw new std::exception("ItemListVisitor: Failed to cache body keyword.");
+			logger::error("ItemListVisitor: Failed to cache body keyword.");
+			return false;
 		}
 		auto* armsKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ArmorGauntlets"sv);
 		if (!armsKeyword) {
-			throw new std::exception("ItemListVisitor: Failed to cache arms keyword.");
+			logger::error("ItemListVisitor: Failed to cache arms keyword.");
+			return false;
 		}
 		auto* bootsKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ArmorBoots"sv);
 		if (!bootsKeyword) {
-			throw new std::exception("ItemListVisitor: Failed to cache boots keyword.");
+			logger::error("ItemListVisitor: Failed to cache boots keyword.");
+			return false;
 		}
 		wornCuirass = headKeyword;
 		wornHelmet = cuirassKeyword;
@@ -44,26 +112,39 @@ namespace ItemVisitor
 
 		auto* heavyKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ArmorHeavy"sv);
 		if (!heavyKeyword) {
-			throw new std::exception("ItemListVisitor: Failed to cache heavy keyword.");
+			logger::error("ItemListVisitor: Failed to cache heavy keyword.");
+			return false;
 		}
 		auto* lightKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ArmorLight"sv);
 		if (!lightKeyword) {
-			throw new std::exception("ItemListVisitor: Failed to cache light keyword.");
+			logger::error("ItemListVisitor: Failed to cache light keyword.");
+			return false;
 		}
 		heavyArmor = heavyKeyword;
 		lightArmor = lightKeyword;
+		return true;
 	}
 
-	void ItemListVisitor::Run() {
-		Visit();
-	}
+	void ItemListVisitor::QueueTask() {
+		if (queued) {
+			return;
+		}
 
-	void ItemListVisitor::Dispose() {
-		delete this;
+		auto* menuHandler = Events::MenuListener::GetSingleton();
+		m_menuName = menuHandler ? menuHandler->GetCurrentMenuName() : "";
+		if (m_menuName.empty() || (
+			m_menuName != RE::InventoryMenu::MENU_NAME &&
+			m_menuName != RE::ContainerMenu::MENU_NAME &&
+			m_menuName != RE::BarterMenu::MENU_NAME)) {
+			return;
+		}
+
+		queued = true;
+		SKSE::GetTaskInterface()->AddTask(reinterpret_cast<::TaskDelegate*>(this));
 	}
 
 	void ItemListVisitor::Visit() {
-		if (!_list.data()) {
+		if (!_list.data() || _list.empty()) {
 			return;
 		}
 
@@ -168,7 +249,8 @@ namespace ItemVisitor
 		RE::InventoryEntryData* a_data,
 		RE::ItemList::Item* a_item) {
 		uint64_t index = 0;
-		bool worn = a_data->IsWorn();
+
+		bool worn = a_data ? a_data->IsWorn() : false;
 
 		if (a_armor->HasKeyword(heavyArmor->formID)) {
 			index += worn ? 0 : ARMOR_HEAVY_START;
@@ -197,12 +279,7 @@ namespace ItemVisitor
 		}
 
 		float value = player->GetArmorValue(a_data);
-		try {
-			best.at(index).Compare(a_item, value);
-		}
-		catch (std::out_of_range& e) {
-			logger::error("Bad index created for {} ({}).", a_armor->GetName(), index);
-		}
+		best.at(index).Compare(a_item, value);
 	}
 
 	void ItemListVisitor::EvaluateWeapon(RE::TESObjectWEAP* a_weap,
@@ -214,13 +291,15 @@ namespace ItemVisitor
 			return;
 		}
 
+		bool equipped = a_data ? a_data->IsWorn() : false;
+
 		index += a_weap->IsRanged() ?
 			WEAPON_RANGED_INDEX :
 			slot == either ?
 			WEAPON_ONEHANDED_INDEX :
 			WEAPON_TWOHANDED_INDEX;
 
-		index += a_data->IsWorn() ? 0 : WEAPON_UNEQUIPPED_START;
+		index += equipped ? 0 : WEAPON_UNEQUIPPED_START;
 
 		float value = player->GetDamage(a_data);
 		best.at(index).Compare(a_item, value);
@@ -231,7 +310,9 @@ namespace ItemVisitor
 		RE::ItemList::Item* a_item) {
 		uint64_t index = AMMO_START_INDEX;
 
-		index += a_data->IsWorn() ? 0 : AMMO_UNEQUIPPED_START;
+		bool equipped = a_data ? a_data->IsWorn() : false;
+
+		index += equipped ? 0 : AMMO_UNEQUIPPED_START;
 		index += a_weap->IsBolt() ? 0 : 1;
 
 		float value = a_weap->data.damage;

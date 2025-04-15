@@ -5,12 +5,12 @@
 namespace Events
 {
 	bool Install() {
-		auto* listenerSingleton = MenuListener::GetSingleton();
-		if (!listenerSingleton) {
-			return false;
+		auto* menuListener = MenuListener::GetSingleton();
+		if (!menuListener) {
+			SKSE::stl::report_and_fail("Failed to get internal listener singletons. This is fatal."sv);
 		}
 
-		return listenerSingleton->RegisterListener();
+		return menuListener->RegisterListener();
 	}
 
 	MenuListener* MenuListener::GetSingleton() {
@@ -30,23 +30,18 @@ namespace Events
 		return true;
 	}
 
-	bool MenuListener::GetShouldProcess() {
-		return shouldProcess;
-	}
-
 	RE::BSEventNotifyControl MenuListener::ProcessEvent(const RE::MenuOpenCloseEvent* a_event,
 		RE::BSTEventSource<RE::MenuOpenCloseEvent>*) {
 		using Control = RE::BSEventNotifyControl;
-
-		shouldProcess = false;
-		CurrentMenu = ""sv;
-
-		if (!a_event || !a_event->opening) {
+		
+		const auto ui = RE::UI::GetSingleton();
+		if (!a_event || !ui) {
+			CurrentMenu = ""sv;
 			return Control::kContinue;
 		}
 
-		const auto ui = RE::UI::GetSingleton();
-		if (!ui) {
+		if (!a_event->opening && !CurrentMenu.empty()) {
+			CurrentMenu = ""sv;
 			return Control::kContinue;
 		}
 
@@ -57,11 +52,11 @@ namespace Events
 			return Control::kContinue;
 		}
 
-		shouldProcess = true;
 		CurrentMenu = eventName;
 
-		if (auto* hookManager = Hooks::BestInClassListener::GetSingleton(); hookManager) {
-			hookManager->SetMemberIfBestInClass(CurrentMenu);
+		auto* hookManager = Hooks::BestInClassListener::GetSingleton();
+		if (hookManager) {
+			hookManager->SetMemberIfBestInClass();
 		}
 
 		return Control::kContinue;
