@@ -31,13 +31,23 @@ namespace
 
 static void MessageEventCallback(SKSE::MessagingInterface::Message* a_msg)
 {
+	bool success = false;
+	auto* itemVisitor = ItemVisitor::ItemListVisitor::GetSingleton();
+	if (!itemVisitor) {
+		SKSE::stl::report_and_fail("Failed to get Item Visitor singleton."sv);
+	}
+
 	switch (a_msg->type) {
 	case SKSE::MessagingInterface::kDataLoaded:
-		Events::Install();
-		ItemVisitor::ItemListVisitor::GetSingleton()->PreloadForms();
+		success = Events::Install() && 
+			itemVisitor->PreloadForms();
 		break;
 	default:
 		break;
+	}
+
+	if (!success) {
+		SKSE::stl::report_and_fail("Failed to perform startup tasks."sv);
 	}
 }
 
