@@ -40,8 +40,22 @@ static void MessageEventCallback(SKSE::MessagingInterface::Message* a_msg)
 
 	switch (a_msg->type) {
 	case SKSE::MessagingInterface::kDataLoaded:
-		success = Events::Install() && 
-			itemVisitor->PreloadForms();
+		success = Events::Install();
+		if (success) {
+			logger::info("Listeners installed successfully."sv);
+		}
+		else {
+			logger::info("One or more listeners failed to install."sv);
+		}
+		logger::info("=========================================================="sv);
+		success = success ? itemVisitor->PreloadForms() : false;
+		if (success) {
+			logger::info("Preloaded all necessary forms for ItemListVisitor."sv);
+		}
+		else {
+			logger::info("Failed to preload forms for ItemListVisitor."sv);
+		}
+		logger::info("=========================================================="sv);
 		break;
 	default:
 		break;
@@ -86,18 +100,15 @@ SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
 	InitializeLog();
-	logger::info("=================================================");
+	logger::info("==========================================================");
 	logger::info("{} v{}"sv, Plugin::NAME, Plugin::VERSION.string());
-	logger::info("Author: Dropkicker"sv);
-	logger::info("=================================================");
+	logger::info("Author: Dropkicker, Netrve, SeaSparrow"sv);
 	SKSE::Init(a_skse);
 
 	const auto ver = a_skse->RuntimeVersion();
 	if (ver < SKSE::RUNTIME_1_6_1130) {
 		return false;
 	}
-
-	Hooks::Install();
 
 	auto* iniManager = Settings::INI::Holder::GetSingleton();
 	if (!iniManager) {
@@ -106,6 +117,8 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	if (!iniManager->Read()) {
 		SKSE::stl::report_and_fail("Failed to read INI settings, corrupted state assumed."sv);
 	}
+
+	Hooks::Install();
 
 	const auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(&MessageEventCallback);

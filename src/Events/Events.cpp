@@ -1,10 +1,13 @@
 #include "events.h"
 
 #include "Hooks/Hooks.h"
+#include "Settings/INISettings.h"
 
 namespace Events
 {
 	bool Install() {
+		logger::info("=========================================================="sv);
+		logger::info("Installing Event Listeners..."sv);
 		auto* menuListener = MenuListener::GetSingleton();
 		auto* equipListener = EquipListener::GetSingleton();
 		if (!menuListener || !equipListener) {
@@ -30,6 +33,7 @@ namespace Events
 			return false;
 		}
 
+		logger::info("  >Installed Menu Listener."sv);
 		eventHolder->AddEventSink(this);
 		return true;
 	}
@@ -72,12 +76,25 @@ namespace Events
 	}
 
 	bool EquipListener::RegisterListener() {
+		auto* iniManager = Settings::INI::Holder::GetSingleton();
+		if (!iniManager) {
+			logger::error("Failed to get ini manager in Equip Listener."sv);
+			return false;
+		}
+
+		auto iniResponse = iniManager->GetStoredSetting<bool>("General|bOriginalFunctionality");
+		if (iniResponse.has_value() && iniResponse.value()) {
+			logger::info("  >Equip Listener will not be installed. (Original Functionality Mode)"sv);
+			return true;
+		}
+
 		auto* eventHolder = RE::ScriptEventSourceHolder::GetSingleton();
 		if (!eventHolder) {
 			logger::error("Failed to get Script Event Source Holder"sv);
 			return false;
 		}
 
+		logger::info("  >Installed Equip Listener."sv);
 		eventHolder->AddEventSink(this);
 		return true;
 	}

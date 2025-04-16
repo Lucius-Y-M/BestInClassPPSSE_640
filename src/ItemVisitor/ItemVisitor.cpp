@@ -1,5 +1,6 @@
 #include "ItemVisitor.h"
 
+#include "OriginalVisitor.h"
 #include "Events/Events.h"
 #include "Settings/INISettings.h"
 
@@ -201,25 +202,50 @@ namespace ItemVisitor
 			logger::error("ItemListVisitor: Invalid response from INI - General|bFlagUnreadSkillBooks");
 			return false;
 		}
+
+		const auto optInitialFunctionality = iniManager->GetStoredSetting<bool>("General|bOriginalFunctionality");
+		if (optInitialFunctionality.has_value()) {
+			originalFunctionality = optInitialFunctionality.value();
+		}
+		else {
+			logger::error("ItemListVisitor: Invalid response from INI - General|bOriginalFunctionality");
+			return false;
+		}
 		return true;
 	}
 
 	void ItemListVisitor::QueueTask() {
-		if (queued) {
-			return;
-		}
+		if (originalFunctionality) {
+			auto* menuHandler = Events::MenuListener::GetSingleton();
+			m_menuName = menuHandler ? menuHandler->GetCurrentMenuName() : "";
+			if (m_menuName.empty() || (
+				m_menuName != RE::InventoryMenu::MENU_NAME &&
+				m_menuName != RE::ContainerMenu::MENU_NAME &&
+				m_menuName != RE::BarterMenu::MENU_NAME)) {
+				return;
+			}
 
-		auto* menuHandler = Events::MenuListener::GetSingleton();
-		m_menuName = menuHandler ? menuHandler->GetCurrentMenuName() : "";
-		if (m_menuName.empty() || (
-			m_menuName != RE::InventoryMenu::MENU_NAME &&
-			m_menuName != RE::ContainerMenu::MENU_NAME &&
-			m_menuName != RE::BarterMenu::MENU_NAME)) {
-			return;
+			SKSE::GetTaskInterface()->
+				AddTask(reinterpret_cast<::TaskDelegate*>
+					(new OriginalVisitor::ItemListVisitor(m_menuName, skyUIPresent)));
 		}
+		else {
+			if (queued) {
+				return;
+			}
 
-		queued = true;
-		SKSE::GetTaskInterface()->AddTask(reinterpret_cast<::TaskDelegate*>(this));
+			auto* menuHandler = Events::MenuListener::GetSingleton();
+			m_menuName = menuHandler ? menuHandler->GetCurrentMenuName() : "";
+			if (m_menuName.empty() || (
+				m_menuName != RE::InventoryMenu::MENU_NAME &&
+				m_menuName != RE::ContainerMenu::MENU_NAME &&
+				m_menuName != RE::BarterMenu::MENU_NAME)) {
+				return;
+			}
+
+			queued = true;
+			SKSE::GetTaskInterface()->AddTask(reinterpret_cast<::TaskDelegate*>(this));
+		}
 	}
 
 	void ItemListVisitor::Visit() {

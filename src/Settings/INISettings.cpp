@@ -125,6 +125,7 @@ namespace Settings::INI
 		};
 
 		const StoredSetting expectedSettings[] = {
+			{ "General", "bOriginalFunctionality" },
 			{ "General", "bFlagUnreadSkillBooks" },
 			{ "General", "bFlagUnreadSpellBooks" }
 		};

@@ -63,6 +63,7 @@ namespace ItemVisitor
 		bool skyUIPresent{ false };
 		bool flagSkillBooks{ false };
 		bool flagSpellBooks{ false };
+		bool originalFunctionality{ false };
 
 		std::unordered_set<const RE::SpellItem*> playerSpells{};
 
