@@ -1,6 +1,7 @@
 #include "Events/Events.h"
 #include "Hooks/Hooks.h"
 #include "ItemVisitor/ItemVisitor.h"
+#include "Settings/INISettings.h"
 
 namespace
 {
@@ -97,6 +98,14 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	}
 
 	Hooks::Install();
+
+	auto* iniManager = Settings::INI::Holder::GetSingleton();
+	if (!iniManager) {
+		SKSE::stl::report_and_fail("Failed to get the INI reader, corrupted state assumed."sv);
+	}
+	if (!iniManager->Read()) {
+		SKSE::stl::report_and_fail("Failed to read INI settings, corrupted state assumed."sv);
+	}
 
 	const auto messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(&MessageEventCallback);

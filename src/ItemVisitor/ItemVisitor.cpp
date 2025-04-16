@@ -1,6 +1,7 @@
 #include "ItemVisitor.h"
 
 #include "Events/Events.h"
+#include "Settings/INISettings.h"
 
 namespace ItemVisitor
 {
@@ -10,6 +11,9 @@ namespace ItemVisitor
 	}
 
 	void ItemListVisitor::Run() {
+#ifndef NDEBUG
+		const auto then = std::chrono::high_resolution_clock::now();
+#endif
 		auto* ui = RE::UI::GetSingleton();
 		if (!ui) {
 			logger::error("ItemListVisitor failed to get UI singleton."sv);
@@ -56,13 +60,46 @@ namespace ItemVisitor
 			return;
 		}
 
+		for (const auto* spell : player->addedSpells) {
+			if (!spell || spell->data.spellType == RE::MagicSystem::SpellType::kAbility) {
+				continue;
+			}
+			playerSpells.insert(spell);
+		}
+		
+		if (flagSpellBooks) {
+			auto* playerBase = player->GetActorBase();
+			if (!playerBase) {
+				logger::error("ItemVisitor: Failed to get player actorbase.");
+				return;
+			}
+
+			const auto* playerEffects = playerBase->actorEffects;
+			auto** baseSpells = playerEffects ? playerEffects->spells : nullptr;
+			if (baseSpells) {
+				for (const auto* spell : std::span(baseSpells, playerEffects->numSpells)) {
+					if (!spell || spell->data.spellType == RE::MagicSystem::SpellType::kAbility) {
+						continue;
+					}
+					playerSpells.insert(spell);
+				}
+			}
+		}
+
 		Visit();
+#ifndef NDEBUG
+		const auto now = std::chrono::high_resolution_clock::now();
+		const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count();
+		logger::debug("Ran algorithm in {}ms", elapsed);
+#endif
 	}
 
 	void ItemListVisitor::Dispose() {
 		m_menuName = "";
 		queued = false;
 		_list.clear();
+		playerSpells.clear();
+		optionalFlags.clear();
 		best = std::array<StoredObject, ARRAY_SIZE>();
 	}
 
@@ -140,6 +177,30 @@ namespace ItemVisitor
 		heavyArmor = heavyKeyword;
 		lightArmor = lightKeyword;
 		clothArmor = clothKeyword;
+
+		auto* iniManager = Settings::INI::Holder::GetSingleton();
+		if (!iniManager) {
+			logger::error("ItemListVisitor: Failed to cache ini settings.");
+			return false;
+		}
+
+		const auto optFlagSpellBooks = iniManager->GetStoredSetting<bool>("General|bFlagUnreadSpellBooks");
+		if (optFlagSpellBooks.has_value()) {
+			flagSpellBooks = optFlagSpellBooks.value();
+		}
+		else {
+			logger::error("ItemListVisitor: Invalid response from INI - General|bFlagUnreadSpellBooks");
+			return false;
+		}
+
+		const auto optFlagSkillBooks = iniManager->GetStoredSetting<bool>("General|bFlagUnreadSkillBooks");
+		if (optFlagSkillBooks.has_value()) {
+			flagSkillBooks = optFlagSkillBooks.value();
+		}
+		else {
+			logger::error("ItemListVisitor: Invalid response from INI - General|bFlagUnreadSkillBooks");
+			return false;
+		}
 		return true;
 	}
 
@@ -177,6 +238,7 @@ namespace ItemVisitor
 			RE::TESAmmo* ammo = nullptr;
 			RE::TESObjectWEAP* weap = nullptr;
 			RE::TESObjectARMO* armo = nullptr;
+			RE::TESObjectBOOK* book = nullptr;
 
 			switch (formType) {
 			case RE::FormType::Ammo:
@@ -187,6 +249,9 @@ namespace ItemVisitor
 				break;
 			case RE::FormType::Weapon:
 				weap = baseObject->As<RE::TESObjectWEAP>();
+				break;
+			case RE::FormType::Book:
+				book = baseObject->As<RE::TESObjectBOOK>();
 				break;
 			default:
 				skip = true;
@@ -204,6 +269,9 @@ namespace ItemVisitor
 			}
 			else if (armo) {
 				EvaluateArmor(armo, extraData, item);
+			}
+			else if (book) {
+				EvaluateBook(book, item);
 			}
 		}
 
@@ -264,9 +332,14 @@ namespace ItemVisitor
 			alternate.item->obj.SetMember("bestInClass", true);
 		}
 
+		for (auto* item : optionalFlags) {
+			if (!item || !item->data.objDesc) {
+				continue;
+			}
+			item->obj.SetMember("bestInClass", true);
+		}
+
 		// InvalidateListData
-		// SkyUI: _level0.Menu_mc.inventoryLists
-		// Skyrim: lol. lmao.
 		auto* ui = RE::UI::GetSingleton();
 		if (!ui) {
 			return;
@@ -419,5 +492,25 @@ namespace ItemVisitor
 		}
 
 		best.at(index).Compare(a_item, value);
+	}
+
+	void ItemListVisitor::EvaluateBook(RE::TESObjectBOOK* a_book, 
+		RE::ItemList::Item* a_item) {
+		if (!flagSpellBooks && !flagSkillBooks) {
+			return;
+		}
+		if (!a_item) {
+			return;
+		}
+
+		if (a_book->TeachesSpell() && flagSpellBooks) {
+			const auto* bookSpell = a_book->GetSpell();
+			if (bookSpell && !playerSpells.contains(bookSpell)) {
+				optionalFlags.push_back(a_item);
+			}
+		}
+		else if (a_book->TeachesSkill() && !a_book->IsRead() && flagSkillBooks) {
+			optionalFlags.push_back(a_item);
+		}
 	}
 }

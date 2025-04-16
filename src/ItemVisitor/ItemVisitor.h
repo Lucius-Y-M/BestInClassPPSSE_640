@@ -1,5 +1,7 @@
 #pragma once 
 
+#include <unordered_set>
+
 namespace ItemVisitor
 {
 	class ItemListVisitor final : public SKSE::detail::TaskDelegate
@@ -38,6 +40,9 @@ namespace ItemVisitor
 			RE::InventoryEntryData* a_data,
 			RE::ItemList::Item* a_item);
 
+		void EvaluateBook(RE::TESObjectBOOK* a_book,
+			RE::ItemList::Item* a_item);
+
 		struct StoredObject
 		{
 			RE::ItemList::Item* item{ nullptr };
@@ -56,6 +61,11 @@ namespace ItemVisitor
 
 		// Cached variables
 		bool skyUIPresent{ false };
+		bool flagSkillBooks{ false };
+		bool flagSpellBooks{ false };
+
+		std::unordered_set<const RE::SpellItem*> playerSpells{};
+
 		RE::PlayerCharacter* player;
 
 		RE::BGSKeyword* heavyArmor{ nullptr };
@@ -69,7 +79,9 @@ namespace ItemVisitor
 		RE::BGSKeyword* wornArms{ nullptr };
 		RE::BGSKeyword* wornLegs{ nullptr };
 
+		// Non-basic 
 		// Class vars
+		std::vector< RE::ItemList::Item*> optionalFlags{};
 		RE::BSTArray<RE::ItemList::Item*> _list{};
 		RE::BSFixedString m_menuName{ ""sv };
 
