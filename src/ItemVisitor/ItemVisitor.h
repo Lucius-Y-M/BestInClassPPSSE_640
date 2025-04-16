@@ -55,6 +55,7 @@ namespace ItemVisitor
 		bool queued{ false };
 
 		// Cached variables
+		bool skyUIPresent{ false };
 		RE::PlayerCharacter* player;
 
 		RE::BGSKeyword* heavyArmor{ nullptr };

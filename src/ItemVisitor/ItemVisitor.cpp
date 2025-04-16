@@ -67,6 +67,17 @@ namespace ItemVisitor
 	}
 
 	bool ItemListVisitor::PreloadForms() {
+		auto* dataHandler = RE::TESDataHandler::GetSingleton();
+		if (!dataHandler) {
+			logger::error("ItemVisitor: Failed to get data handler.");
+			return false;
+		}
+
+		const auto* skyUIMod = dataHandler->LookupModByName("SkyUI_SE.esp");
+		if (skyUIMod) {
+			skyUIPresent = true;
+		}
+
 		auto* gamePlayer = RE::PlayerCharacter::GetSingleton();
 		if (!gamePlayer) {
 			logger::error("ItemListVisitor: Failed to cache player.");
@@ -254,55 +265,55 @@ namespace ItemVisitor
 		}
 
 		// InvalidateListData
+		// SkyUI: _level0.Menu_mc.inventoryLists
+		// Skyrim: lol. lmao.
 		auto* ui = RE::UI::GetSingleton();
 		if (!ui) {
 			return;
 		}
 
 		RE::GFxValue entryList;
+		RE::GFxValue menuRoot;
 
 		if (m_menuName == RE::BarterMenu::MENU_NAME) {
 			auto menu = ui->GetMenu<RE::BarterMenu>();
-			auto movie = menu ? menu->uiMovie : nullptr;
-			if (!movie) {
-				logger::error("Failed to get menu movie clip."sv);
+			if (!menu) {
+				logger::error("Failed to get menu."sv);
 				return;
 			}
-
-			std::string path = "_level0.Menu_mc.inventoryLists";
-
-			if (!menu->uiMovie->GetVariable(&entryList, path.c_str())) {
-				logger::error("Failed to get path."sv);
-				return;
-			}
+			menuRoot = menu->root;
 		}
 		else if (m_menuName == RE::ContainerMenu::MENU_NAME) {
 			auto menu = ui->GetMenu<RE::ContainerMenu>();
-			auto movie = menu ? menu->uiMovie : nullptr;
-			if (!movie) {
-				logger::error("Failed to get menu movie clip."sv);
+			if (!menu) {
+				logger::error("Failed to get menu."sv);
 				return;
 			}
+			menuRoot = menu->root;
+		}
+		else {
+			auto menu = ui->GetMenu<RE::InventoryMenu>();
+			if (!menu) {
+				logger::error("Failed to get menu."sv);
+				return;
+			}
+			menuRoot = menu->root;
+		}
 
-			std::string path = "_level0.Menu_mc.inventoryLists";
+		if (menuRoot.IsUndefined() || menuRoot.IsNull()) {
+			logger::error("Failed to get menu root."sv);
+			return;
+		}
 
-			if (!menu->uiMovie->GetVariable(&entryList, path.c_str())) {
-				logger::error("Failed to get path."sv);
+		if (skyUIPresent) {
+			if (!menuRoot.GetMember("inventoryLists", &entryList)) {
+				logger::error("Failed to get entry list element."sv);
 				return;
 			}
 		}
 		else {
-			auto menu = ui->GetMenu<RE::InventoryMenu>();
-			auto movie = menu ? menu->uiMovie : nullptr;
-			if (!movie) {
-				logger::error("Failed to get menu movie clip."sv);
-				return;
-			}
-
-			std::string path = "_level0.Menu_mc.inventoryLists";
-
-			if (!menu->uiMovie->GetVariable(&entryList, path.c_str())) {
-				logger::error("Failed to get path."sv);
+			if (!menuRoot.GetMember("InventoryLists_mc", &entryList)) {
+				logger::error("Failed to get InventoryLists_mc element."sv);
 				return;
 			}
 		}
