@@ -77,12 +77,13 @@ namespace ItemVisitor
 		static constexpr uint64_t ARMOR_HEAD_INDEX = 1;
 		static constexpr uint64_t ARMOR_ARMS_INDEX = 2;
 		static constexpr uint64_t ARMOR_BOOTS_INDEX = 3;
+		static constexpr uint64_t ARMOR_SHIELD_INDEX = 4;
 
-		static constexpr uint64_t ARMOR_HEAVY_START = 4;
-		static constexpr uint64_t ARMOR_LIGHT_START = 8;
-		static constexpr uint64_t ARMOR_CLOTH_START = 12;
+		static constexpr uint64_t ARMOR_HEAVY_START = 5;
+		static constexpr uint64_t ARMOR_LIGHT_START = 10;
+		static constexpr uint64_t ARMOR_CLOTH_START = 15;
 
-		static constexpr uint64_t ARRAY_ARMOR_SIZE = 16;
+		static constexpr uint64_t ARRAY_ARMOR_SIZE = 20;
 
 		// Weapon definitions
 		static constexpr uint64_t WEAPON_START_INDEX = ARRAY_ARMOR_SIZE;

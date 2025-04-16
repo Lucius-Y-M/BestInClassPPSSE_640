@@ -121,8 +121,14 @@ namespace ItemVisitor
 			logger::error("ItemListVisitor: Failed to cache light keyword.");
 			return false;
 		}
+		auto* clothKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ArmorClothing"sv);
+		if (!lightKeyword) {
+			logger::error("ItemListVisitor: Failed to cache clothing keyword.");
+			return false;
+		}
 		heavyArmor = heavyKeyword;
 		lightArmor = lightKeyword;
+		clothArmor = clothKeyword;
 		return true;
 	}
 
@@ -194,7 +200,7 @@ namespace ItemVisitor
 	}
 
 	void ItemListVisitor::SetBest() {
-		for (uint64_t i = 0; i < 4; ++i) {
+		for (uint64_t i = 0; i < 5; ++i) {
 			auto& candidate = best.at(i);
 			if (!candidate.item) {
 				continue;
@@ -208,8 +214,14 @@ namespace ItemVisitor
 			else if (armor->HasKeyword(lightArmor->formID)) {
 				secondary += ARMOR_LIGHT_START;
 			}
-			else {
+			else if (armor->HasKeyword(clothArmor->formID)) {
 				secondary += ARMOR_CLOTH_START;
+			}
+			else if (armor->IsHeavyArmor()) {
+				secondary += ARMOR_HEAVY_START;
+			}
+			else {
+				secondary += ARMOR_LIGHT_START;
 			}
 
 			auto& alternate = best.at(secondary);
@@ -313,14 +325,23 @@ namespace ItemVisitor
 
 		bool worn = a_data ? a_data->IsWorn() : false;
 
-		if (a_armor->HasKeyword(heavyArmor->formID)) {
-			index += worn ? 0 : ARMOR_HEAVY_START;
+		if (worn) {
+			index = 0;
+		}
+		else if (a_armor->HasKeyword(heavyArmor->formID)) {
+			index += ARMOR_HEAVY_START;
 		}
 		else if (a_armor->HasKeyword(lightArmor->formID)) {
-			index += worn ? 0 : ARMOR_LIGHT_START;
+			index += ARMOR_LIGHT_START;
 		}
 		else if (a_armor->HasKeyword(clothArmor)) {
-			index += worn ? 0 : ARMOR_CLOTH_START;
+			index += ARMOR_CLOTH_START;
+		}
+		else if (a_armor->IsHeavyArmor()) {
+			index += ARMOR_HEAVY_START;
+		}
+		else if (a_armor->IsLightArmor()) {
+			index += ARMOR_LIGHT_START;
 		}
 		else {
 			return;
@@ -334,6 +355,9 @@ namespace ItemVisitor
 		}
 		else if (a_armor->HasKeyword(wornLegs->formID)) {
 			index += ARMOR_BOOTS_INDEX;
+		}
+		else if (a_armor->IsShield()) {
+			index += ARMOR_SHIELD_INDEX;
 		}
 		else if (!a_armor->HasKeyword(wornCuirass->formID)) {
 			return;
