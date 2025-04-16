@@ -1,7 +1,5 @@
 #include "Hooks.h"
 
-#include <xbyak.h>
-
 #include "Events/Events.h"
 #include "ItemVisitor/ItemVisitor.h"
 
@@ -9,9 +7,8 @@
 
 namespace Hooks 
 {
-	void Install()
-	{
-		SKSE::AllocTrampoline(64);
+	void Install() {
+		SKSE::AllocTrampoline(1024);
 		BestInClassListener::GetSingleton()->Install();
 	}
 
@@ -22,49 +19,16 @@ namespace Hooks
 
 	void BestInClassListener::Install() {
 		BestInInventory::Install();
+		BestInBarter::Install();
+		BestInContainer::Install();
 	}
 
-	void BestInClassListener::SetMemberIfBestInClass(const RE::BSFixedString& a_menuName) {
-		auto* ui = RE::UI::GetSingleton();
-		if (!ui) {
+	void BestInClassListener::SetMemberIfBestInClass() {
+		auto* visitor = ItemVisitor::ItemListVisitor::GetSingleton();
+		if (!visitor) {
 			return;
 		}
-
-		RE::BSTArray<RE::ItemList::Item*> items{};
-		if (a_menuName == RE::BarterMenu::MENU_NAME) {
-			const auto menu = static_cast<RE::BarterMenu*>(ui->GetMenu(a_menuName).get());
-			items = menu->itemList->items;
-		}
-		else if (a_menuName == RE::ContainerMenu::MENU_NAME) {
-			const auto menu = static_cast<RE::ContainerMenu*>(ui->GetMenu(a_menuName).get());
-			items = menu->itemList->items;
-		}
-		else if (a_menuName == RE::InventoryMenu::MENU_NAME) {
-			const auto menu = static_cast<RE::InventoryMenu*>(ui->GetMenu(a_menuName).get());
-			items = menu->itemList->items;
-		}
-		else {
-			return;
-		}
-
-		auto* visitor = new ItemVisitor::ItemListVisitor(items);
-		TaskDelegate* delegate = reinterpret_cast<::TaskDelegate*>(visitor);
-		SKSE::GetTaskInterface()->AddTask(delegate);
-	}
-
-	bool BestInClassListener::ShouldInvokeOriginal() {
-		auto* eventManager = Events::MenuListener::GetSingleton();
-		if (!eventManager) {
-			return true;
-		}
-
-		const auto menuName = eventManager->GetCurrentMenuName();
-		if (menuName.empty()) {
-			return true;
-		}
-
-		SetMemberIfBestInClass(menuName);
-		return false;
+		visitor->QueueTask();
 	}
 
 	void BestInClassListener::BestInInventory::Install() {
@@ -98,23 +62,29 @@ namespace Hooks
 	}
 
 	void BestInClassListener::BestInInventory::Thunk(void* a1) {
-		auto* manager = BestInClassListener::GetSingleton();
-		if (!manager || manager->ShouldInvokeOriginal()) {
-			_func(a1);
+		auto* hookManager = BestInClassListener::GetSingleton();
+		if (!hookManager) {
+			logger::error("Best In Class Listerner failed to get manager singleton."sv);
+			return;
 		}
+		hookManager->SetMemberIfBestInClass();
 	}
 
 	void BestInClassListener::BestInContainer::Thunk(void* a1) {
-		auto* manager = BestInClassListener::GetSingleton();
-		if (!manager || manager->ShouldInvokeOriginal()) {
-			_func(a1);
+		auto* hookManager = BestInClassListener::GetSingleton();
+		if (!hookManager) {
+			logger::error("Best In Class Listerner failed to get manager singleton."sv);
+			return;
 		}
+		hookManager->SetMemberIfBestInClass();
 	}
 
 	void BestInClassListener::BestInBarter::Thunk(void* a1) {
-		auto* manager = BestInClassListener::GetSingleton();
-		if (!manager || manager->ShouldInvokeOriginal()) {
-			_func(a1);
+		auto* hookManager = BestInClassListener::GetSingleton();
+		if (!hookManager) {
+			logger::error("Best In Class Listerner failed to get manager singleton."sv);
+			return;
 		}
+		hookManager->SetMemberIfBestInClass();
 	}
 }

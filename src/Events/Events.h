@@ -4,13 +4,31 @@ namespace Events
 {
 	bool Install();
 
+	class EquipListener : public RE::BSTEventSink<RE::TESEquipEvent> {
+	public:
+		static EquipListener* GetSingleton();
+
+		bool RegisterListener();
+
+		EquipListener(const EquipListener&) = delete;
+		EquipListener(EquipListener&&) = delete;
+		EquipListener& operator=(const EquipListener&) = delete;
+		EquipListener& operator=(EquipListener&&) = delete;
+
+	protected:
+		EquipListener() = default;
+		~EquipListener() = default;
+
+	private:
+		RE::BSEventNotifyControl ProcessEvent(const RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>*) override;
+	};
+
 	class MenuListener : public RE::BSTEventSink<RE::MenuOpenCloseEvent> {
 	public:
 		static MenuListener* GetSingleton();
 
 		RE::BSFixedString GetCurrentMenuName();
 		bool RegisterListener();
-		bool GetShouldProcess();
 
 		MenuListener(const MenuListener&) = delete;
 		MenuListener(MenuListener&&) = delete;
@@ -24,7 +42,6 @@ namespace Events
 	private:
 		RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override;
 
-		bool shouldProcess{ false };
-		RE::BSFixedString CurrentMenu{ ""sv};
+		RE::BSFixedString CurrentMenu{ ""sv };
 	};
 }

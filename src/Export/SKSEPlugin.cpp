@@ -1,5 +1,6 @@
 #include "Events/Events.h"
 #include "Hooks/Hooks.h"
+#include "ItemVisitor/ItemVisitor.h"
 
 namespace
 {
@@ -25,6 +26,28 @@ namespace
 
 		spdlog::set_default_logger(std::move(log));
 		spdlog::set_pattern("[%^%l%$] %v"s);
+	}
+}
+
+static void MessageEventCallback(SKSE::MessagingInterface::Message* a_msg)
+{
+	bool success = true;
+	auto* itemVisitor = ItemVisitor::ItemListVisitor::GetSingleton();
+	if (!itemVisitor) {
+		SKSE::stl::report_and_fail("Failed to get Item Visitor singleton."sv);
+	}
+
+	switch (a_msg->type) {
+	case SKSE::MessagingInterface::kDataLoaded:
+		success = Events::Install() && 
+			itemVisitor->PreloadForms();
+		break;
+	default:
+		break;
+	}
+
+	if (!success) {
+		SKSE::stl::report_and_fail("Failed to perform startup tasks."sv);
 	}
 }
 
@@ -74,6 +97,9 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	}
 
 	Hooks::Install();
-	Events::Install();
+
+	const auto messaging = SKSE::GetMessagingInterface();
+	messaging->RegisterListener(&MessageEventCallback);
+
 	return true;
 }

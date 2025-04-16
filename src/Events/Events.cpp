@@ -5,12 +5,13 @@
 namespace Events
 {
 	bool Install() {
-		auto* listenerSingleton = MenuListener::GetSingleton();
-		if (!listenerSingleton) {
-			return false;
+		auto* menuListener = MenuListener::GetSingleton();
+		auto* equipListener = EquipListener::GetSingleton();
+		if (!menuListener || !equipListener) {
+			SKSE::stl::report_and_fail("Failed to get internal listener singletons. This is fatal."sv);
 		}
 
-		return listenerSingleton->RegisterListener();
+		return menuListener->RegisterListener() && equipListener->RegisterListener();
 	}
 
 	MenuListener* MenuListener::GetSingleton() {
@@ -24,29 +25,27 @@ namespace Events
 
 	bool MenuListener::RegisterListener() {
 		auto* eventHolder = RE::UI::GetSingleton();
-		if (!eventHolder) return false;
+		if (!eventHolder) {
+			logger::error("Failed to get UI Event Source Holder"sv);
+			return false;
+		}
 
 		eventHolder->AddEventSink(this);
 		return true;
 	}
 
-	bool MenuListener::GetShouldProcess() {
-		return shouldProcess;
-	}
-
 	RE::BSEventNotifyControl MenuListener::ProcessEvent(const RE::MenuOpenCloseEvent* a_event,
 		RE::BSTEventSource<RE::MenuOpenCloseEvent>*) {
 		using Control = RE::BSEventNotifyControl;
-
-		shouldProcess = false;
-		CurrentMenu = ""sv;
-
-		if (!a_event || !a_event->opening) {
+		
+		const auto ui = RE::UI::GetSingleton();
+		if (!a_event || !ui) {
+			CurrentMenu = ""sv;
 			return Control::kContinue;
 		}
 
-		const auto ui = RE::UI::GetSingleton();
-		if (!ui) {
+		if (!a_event->opening && !CurrentMenu.empty()) {
+			CurrentMenu = ""sv;
 			return Control::kContinue;
 		}
 
@@ -57,13 +56,47 @@ namespace Events
 			return Control::kContinue;
 		}
 
-		shouldProcess = true;
 		CurrentMenu = eventName;
 
-		if (auto* hookManager = Hooks::BestInClassListener::GetSingleton(); hookManager) {
-			hookManager->SetMemberIfBestInClass(CurrentMenu);
+		auto* hookManager = Hooks::BestInClassListener::GetSingleton();
+		if (hookManager) {
+			hookManager->SetMemberIfBestInClass();
 		}
 
+		return Control::kContinue;
+	}
+
+	EquipListener* EquipListener::GetSingleton() {
+		static EquipListener singleton;
+		return std::addressof(singleton);
+	}
+
+	bool EquipListener::RegisterListener() {
+		auto* eventHolder = RE::ScriptEventSourceHolder::GetSingleton();
+		if (!eventHolder) {
+			logger::error("Failed to get Script Event Source Holder"sv);
+			return false;
+		}
+
+		eventHolder->AddEventSink(this);
+		return true;
+	}
+
+	RE::BSEventNotifyControl EquipListener::ProcessEvent(const RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>*) {
+		using Control = RE::BSEventNotifyControl;
+
+		if (!a_event ||
+			!a_event->actor ||
+			!a_event->actor->IsPlayerRef()) {
+			return Control::kContinue;
+		}
+
+		auto* hookManager = Hooks::BestInClassListener::GetSingleton();
+		if (!hookManager) {
+			return Control::kContinue;
+		}
+
+		hookManager->SetMemberIfBestInClass();
 		return Control::kContinue;
 	}
 }
