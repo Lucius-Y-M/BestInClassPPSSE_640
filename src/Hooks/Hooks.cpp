@@ -8,7 +8,7 @@
 namespace Hooks 
 {
 	void Install() {
-		SKSE::AllocTrampoline(1024);
+		SKSE::AllocTrampoline(42);
 		BestInClassListener::GetSingleton()->Install();
 	}
 
@@ -62,6 +62,7 @@ namespace Hooks
 	}
 
 	void BestInClassListener::BestInInventory::Thunk(void* a1) {
+		(void)a1;
 		auto* hookManager = BestInClassListener::GetSingleton();
 		if (!hookManager) {
 			logger::error("Best In Class Listerner failed to get manager singleton."sv);
@@ -71,6 +72,7 @@ namespace Hooks
 	}
 
 	void BestInClassListener::BestInContainer::Thunk(void* a1) {
+		(void)a1;
 		auto* hookManager = BestInClassListener::GetSingleton();
 		if (!hookManager) {
 			logger::error("Best In Class Listerner failed to get manager singleton."sv);
@@ -80,6 +82,7 @@ namespace Hooks
 	}
 
 	void BestInClassListener::BestInBarter::Thunk(void* a1) {
+		(void)a1;
 		auto* hookManager = BestInClassListener::GetSingleton();
 		if (!hookManager) {
 			logger::error("Best In Class Listerner failed to get manager singleton."sv);
