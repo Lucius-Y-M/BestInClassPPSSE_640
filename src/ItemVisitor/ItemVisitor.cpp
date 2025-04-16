@@ -243,6 +243,39 @@ namespace ItemVisitor
 			alternate.Compare(candidate.item, candidate.value);
 			alternate.item->obj.SetMember("bestInClass", true);
 		}
+
+		// InvalidateListData
+		auto* ui = RE::UI::GetSingleton();
+		if (!ui) {
+			return;
+		}
+
+		if (m_menuName == RE::InventoryMenu::MENU_NAME) {
+			auto menu = ui->GetMenu<RE::InventoryMenu>();
+			auto movie = menu ? menu->uiMovie : nullptr;
+			if (!movie) {
+				logger::error("Failed to get menu movie clip."sv);
+				return;
+			}
+
+			std::string path = "_level0.Menu_mc.inventoryLists";
+			RE::GFxValue entryList;
+
+			if (!menu->uiMovie->GetVariable(&entryList, path.c_str())) {
+				logger::error("Failed to get path."sv);
+				return;
+			}
+
+			if (entryList.IsUndefined() || entryList.IsNull()) {
+				logger::error("Failed to get entry list element."sv);
+				return;
+			}
+
+			if (!entryList.Invoke("InvalidateListData")) {
+				logger::error("Failed to invoke function."sv);
+				return;
+			}
+		}
 	}
 
 	void ItemListVisitor::EvaluateArmor(RE::TESObjectARMO* a_armor,
