@@ -2,6 +2,7 @@
 
 #include "Events/Events.h"
 #include "ItemVisitor/ItemVisitor.h"
+#include "RE/Offset.h"
 
 #undef GetObject
 
@@ -32,7 +33,7 @@ namespace Hooks
 	}
 
 	void BestInClassListener::BestInInventory::Install() {
-		REL::Relocation<std::uintptr_t> target{ REL::ID(51866), 0x400 };
+		REL::Relocation<std::uintptr_t> target{ RE::Offset::InventoryMenu::SetBestInClass, offset };
 		if (!(REL::make_pattern<"E8">().match(target.address()))) {
 			SKSE::stl::report_and_fail("Failed to validate pattern of Inventory Menu listener."sv);
 		}
@@ -42,7 +43,7 @@ namespace Hooks
 	}
 
 	void BestInClassListener::BestInContainer::Install() {
-		REL::Relocation<std::uintptr_t> target{ REL::ID(51144), 0x4CE };
+		REL::Relocation<std::uintptr_t> target{ RE::Offset::ContainerMenu::SetBestInClass, offset };
 		if (!(REL::make_pattern<"E8">().match(target.address()))) {
 			SKSE::stl::report_and_fail("Failed to validate pattern of Container Menu listener."sv);
 		}
@@ -52,9 +53,19 @@ namespace Hooks
 	}
 
 	void BestInClassListener::BestInBarter::Install() {
-		REL::Relocation<std::uintptr_t> target{ REL::ID(50958), 0x300 };
+		REL::Relocation<std::uintptr_t> target{ RE::Offset::BarterMenu::SetBestInClass, offset };
 		if (!(REL::make_pattern<"E8">().match(target.address()))) {
 			SKSE::stl::report_and_fail("Failed to validate pattern of Barter Menu listener."sv);
+		}
+
+		auto& trampoline = SKSE::GetTrampoline();
+		_func = trampoline.write_call<5>(target.address(), &Thunk);
+	}
+
+	void BestInClassListener::EquipFromContainer::Install() {
+		REL::Relocation<std::uintptr_t> target{ RE::Offset::ContainerMenu::EquipItem, offset };
+		if (!(REL::make_pattern<"E8">().match(target.address()))) {
+			SKSE::stl::report_and_fail("Failed to validate pattern of Container Menu Equip listener."sv);
 		}
 
 		auto& trampoline = SKSE::GetTrampoline();
@@ -89,5 +100,9 @@ namespace Hooks
 			return;
 		}
 		hookManager->SetMemberIfBestInClass();
+	}
+
+	void BestInClassListener::EquipFromContainer::Thunk(void* a1, void* a2, void* a3) {
+		_func(a1, a2, a3);
 	}
 }

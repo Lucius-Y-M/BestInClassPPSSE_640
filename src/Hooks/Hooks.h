@@ -1,7 +1,5 @@
 #pragma once
 
-#include "RE/Offset.h"
-
 namespace Hooks 
 {
 	class BestInClassListener
@@ -26,6 +24,7 @@ namespace Hooks
 			static void Install();
 			static void Thunk(void* a1);
 
+			inline static std::ptrdiff_t offset{ 0x400 };
 			inline static REL::Relocation<decltype(&Thunk)> _func;
 		};
 
@@ -34,6 +33,19 @@ namespace Hooks
 			static void Install();
 			static void Thunk(void* a1);
 
+			inline static std::ptrdiff_t offset{ 0x4CE };
+			inline static REL::Relocation<decltype(&Thunk)> _func;
+		};
+
+		/// <summary>
+		/// Unused. Was meant to be a workaround for equipping from merchants and containers.
+		/// </summary>
+		struct EquipFromContainer
+		{
+			static void Install();
+			static void Thunk(void* a1, void* a2, void* a3);
+
+			inline static std::ptrdiff_t offset{ 0x196 };
 			inline static REL::Relocation<decltype(&Thunk)> _func;
 		};
 
@@ -42,6 +54,7 @@ namespace Hooks
 			static void Install();
 			static void Thunk(void* a1);
 
+			inline static std::ptrdiff_t offset{ 0x300 };
 			inline static REL::Relocation<decltype(&Thunk)> _func;
 		};
 	};

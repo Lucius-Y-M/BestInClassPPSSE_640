@@ -23,7 +23,7 @@ namespace ItemVisitor
 				logger::error("ItemListVisitor failed to get Inventory Menu list."sv);
 				return;
 			}
-			if (menuList->items.empty()) {
+			if (!menuList->items.data() || menuList->items.empty()) {
 				return;
 			}
 			_list = menuList->items;
@@ -35,7 +35,7 @@ namespace ItemVisitor
 				logger::error("ItemListVisitor failed to get Barter Menu list."sv);
 				return;
 			}
-			if (menuList->items.empty()) {
+			if (!menuList->items.data() || menuList->items.empty()) {
 				return;
 			}
 			_list = menuList->items;
@@ -44,10 +44,10 @@ namespace ItemVisitor
 			const auto menu = ui->GetMenu<RE::ContainerMenu>();
 			const auto menuList = menu ? menu->itemList : nullptr;
 			if (!menuList) {
-				logger::error("ItemListVisitor failed to get Gift Menu list."sv);
+				logger::error("ItemListVisitor failed to get Container Menu list."sv);
 				return;
 			}
-			if (menuList->items.empty()) {
+			if (!menuList->items.data() || menuList->items.empty()) {
 				return;
 			}
 			_list = menuList->items;
@@ -55,6 +55,7 @@ namespace ItemVisitor
 		else {
 			return;
 		}
+
 		Visit();
 	}
 
@@ -78,7 +79,7 @@ namespace ItemVisitor
 			logger::error("ItemListVisitor: Failed to cache dobj.");
 			return false;
 		}
-		auto* eitherSlot = dobj->GetObject<RE::BGSEquipSlot>(RE::DEFAULT_OBJECT::kEitherHandEquip);
+		auto* eitherSlot = dobj->GetObject<RE::BGSEquipSlot>(RE::DEFAULT_OBJECT::kRightHandEquip);
 		if (!eitherSlot) {
 			logger::error("ItemListVisitor: Failed to cache either slot.");
 			return false;
@@ -144,10 +145,6 @@ namespace ItemVisitor
 	}
 
 	void ItemListVisitor::Visit() {
-		if (!_list.data() || _list.empty()) {
-			return;
-		}
-
 		for (auto* item : _list) {
 			auto* extraData = item ? item->data.objDesc : nullptr;
 			auto* baseObject = extraData ? extraData->GetObject() : nullptr;
@@ -250,7 +247,39 @@ namespace ItemVisitor
 			return;
 		}
 
-		if (m_menuName == RE::InventoryMenu::MENU_NAME) {
+		RE::GFxValue entryList;
+
+		if (m_menuName == RE::BarterMenu::MENU_NAME) {
+			auto menu = ui->GetMenu<RE::BarterMenu>();
+			auto movie = menu ? menu->uiMovie : nullptr;
+			if (!movie) {
+				logger::error("Failed to get menu movie clip."sv);
+				return;
+			}
+
+			std::string path = "_level0.Menu_mc.inventoryLists";
+
+			if (!menu->uiMovie->GetVariable(&entryList, path.c_str())) {
+				logger::error("Failed to get path."sv);
+				return;
+			}
+		}
+		else if (m_menuName == RE::ContainerMenu::MENU_NAME) {
+			auto menu = ui->GetMenu<RE::ContainerMenu>();
+			auto movie = menu ? menu->uiMovie : nullptr;
+			if (!movie) {
+				logger::error("Failed to get menu movie clip."sv);
+				return;
+			}
+
+			std::string path = "_level0.Menu_mc.inventoryLists";
+
+			if (!menu->uiMovie->GetVariable(&entryList, path.c_str())) {
+				logger::error("Failed to get path."sv);
+				return;
+			}
+		}
+		else {
 			auto menu = ui->GetMenu<RE::InventoryMenu>();
 			auto movie = menu ? menu->uiMovie : nullptr;
 			if (!movie) {
@@ -259,22 +288,21 @@ namespace ItemVisitor
 			}
 
 			std::string path = "_level0.Menu_mc.inventoryLists";
-			RE::GFxValue entryList;
 
 			if (!menu->uiMovie->GetVariable(&entryList, path.c_str())) {
 				logger::error("Failed to get path."sv);
 				return;
 			}
+		}
 
-			if (entryList.IsUndefined() || entryList.IsNull()) {
-				logger::error("Failed to get entry list element."sv);
-				return;
-			}
+		if (entryList.IsUndefined() || entryList.IsNull()) {
+			logger::error("Failed to get entry list element."sv);
+			return;
+		}
 
-			if (!entryList.Invoke("InvalidateListData")) {
-				logger::error("Failed to invoke function."sv);
-				return;
-			}
+		if (!entryList.Invoke("InvalidateListData")) {
+			logger::error("Failed to invoke function."sv);
+			return;
 		}
 	}
 

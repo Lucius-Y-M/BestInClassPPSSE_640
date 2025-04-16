@@ -4,12 +4,20 @@ namespace RE
 {
 	namespace Offset
 	{
-		namespace Message
+		namespace BarterMenu
 		{
-			constexpr auto GetDescription = REL::ID(14552);
+			constexpr auto SetBestInClass = REL::ID(50958);
 		}
 
-		constexpr auto DebugNotification = REL::ID(52933);
-		constexpr auto CreateMessage = REL::ID(52269);
+		namespace ContainerMenu
+		{
+			constexpr auto SetBestInClass = REL::ID(51144);
+			constexpr auto EquipItem = REL::ID(51133);
+		}
+
+		namespace InventoryMenu
+		{
+			constexpr auto SetBestInClass = REL::ID(51866);
+		}
 	}
 }
