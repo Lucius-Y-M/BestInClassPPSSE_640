@@ -135,6 +135,31 @@ namespace ItemVisitor
 		}
 		either = eitherSlot;
 
+		auto* headClothKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ClothingHead"sv);
+		if (!headClothKeyword) {
+			logger::error("ItemListVisitor: Failed to cache cloth head keyword.");
+			return false;
+		}
+		auto* cuirassClothKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ClothingBody"sv);
+		if (!cuirassClothKeyword) {
+			logger::error("ItemListVisitor: Failed to cache cloth body keyword.");
+			return false;
+		}
+		auto* armsClothKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ClothingHands"sv);
+		if (!armsClothKeyword) {
+			logger::error("ItemListVisitor: Failed to cache cloth arms keyword.");
+			return false;
+		}
+		auto* bootsClothKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ClothingFeet"sv);
+		if (!bootsClothKeyword) {
+			logger::error("ItemListVisitor: Failed to cache cloth boots keyword.");
+			return false;
+		}
+		clothCuirass = headClothKeyword;
+		clothHelmet = cuirassClothKeyword;
+		clothArms = armsClothKeyword;
+		clothLegs = bootsClothKeyword;
+
 		auto* headKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ArmorHelmet"sv);
 		if (!headKeyword) {
 			logger::error("ItemListVisitor: Failed to cache head keyword.");
@@ -431,9 +456,14 @@ namespace ItemVisitor
 	void ItemListVisitor::EvaluateArmor(RE::TESObjectARMO* a_armor,
 		RE::InventoryEntryData* a_data,
 		RE::ItemList::Item* a_item) {
+		if (!a_data) {
+			return;
+		}
+
 		uint64_t index = 0;
 
-		bool worn = a_data ? a_data->IsWorn() : false;
+		bool worn = a_data->IsWorn();
+		bool isClothing = a_armor->HasKeyword(clothArmor->formID);
 
 		if (worn) {
 			index = 0;
@@ -444,7 +474,7 @@ namespace ItemVisitor
 		else if (a_armor->HasKeyword(lightArmor->formID)) {
 			index += ARMOR_LIGHT_START;
 		}
-		else if (a_armor->HasKeyword(clothArmor)) {
+		else if (isClothing) {
 			index += ARMOR_CLOTH_START;
 		}
 		else if (a_armor->IsHeavyArmor()) {
@@ -457,23 +487,32 @@ namespace ItemVisitor
 			return;
 		}
 
-		if (a_armor->HasKeyword(wornHelmet->formID)) {
+		if (a_armor->HasKeyword(wornCuirass->formID) ||
+			a_armor->HasKeyword(clothCuirass->formID)) {
+			index += ARMOR_CUIRASS_INDEX;
+		}
+		else if (a_armor->HasKeyword(wornHelmet->formID) || 
+			a_armor->HasKeyword(clothHelmet->formID)) {
 			index += ARMOR_HEAD_INDEX;
 		}
-		else if (a_armor->HasKeyword(wornArms->formID)) {
+		else if (a_armor->HasKeyword(wornArms->formID) ||
+			a_armor->HasKeyword(clothArms->formID)) {
 			index += ARMOR_ARMS_INDEX;
 		}
-		else if (a_armor->HasKeyword(wornLegs->formID)) {
+		else if (a_armor->HasKeyword(wornLegs->formID) ||
+			a_armor->HasKeyword(clothLegs->formID)) {
 			index += ARMOR_BOOTS_INDEX;
 		}
 		else if (a_armor->IsShield()) {
 			index += ARMOR_SHIELD_INDEX;
 		}
-		else if (!a_armor->HasKeyword(wornCuirass->formID)) {
+		else {
 			return;
 		}
 
-		float value = player->GetArmorValue(a_data);
+		float value = isClothing ? 
+			static_cast<float>(a_data->GetValue()) : 
+			player->GetArmorValue(a_data);
 		best.at(index).Compare(a_item, value);
 	}
 
@@ -482,21 +521,29 @@ namespace ItemVisitor
 		RE::ItemList::Item* a_item) {
 		uint64_t index = WEAPON_START_INDEX;
 		auto* slot = a_weap->GetEquipSlot();
-		if (!slot) {
+		if (!slot || !a_data) {
 			return;
 		}
 
-		bool equipped = a_data ? a_data->IsWorn() : false;
+		bool equipped = a_data->IsWorn();
+		bool staff = a_weap->IsStaff();
 
-		index += a_weap->IsRanged() ?
-			WEAPON_RANGED_INDEX :
-			slot == either ?
-			WEAPON_ONEHANDED_INDEX :
-			WEAPON_TWOHANDED_INDEX;
+		if (staff) {
+			index += WEAPON_STAFF_INDEX;
+		}
+		else if (a_weap->IsRanged()) {
+			index += WEAPON_RANGED_INDEX;
+		}
+		else if (slot == either) {
+			index += WEAPON_ONEHANDED_INDEX;
+		}
+		else {
+			index += WEAPON_TWOHANDED_INDEX;
+		}
 
 		index += equipped ? 0 : WEAPON_UNEQUIPPED_START;
 
-		float value = player->GetDamage(a_data);
+		float value = staff ? a_data->GetValue() : player->GetDamage(a_data);
 		best.at(index).Compare(a_item, value);
 	}
 

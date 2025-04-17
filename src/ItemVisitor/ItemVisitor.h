@@ -80,6 +80,11 @@ namespace ItemVisitor
 		RE::BGSKeyword* wornArms{ nullptr };
 		RE::BGSKeyword* wornLegs{ nullptr };
 
+		RE::BGSKeyword* clothCuirass{ nullptr };
+		RE::BGSKeyword* clothHelmet{ nullptr };
+		RE::BGSKeyword* clothArms{ nullptr };
+		RE::BGSKeyword* clothLegs{ nullptr };
+
 		// Non-basic 
 		// Class vars
 		std::vector< RE::ItemList::Item*> optionalFlags{};
@@ -105,10 +110,11 @@ namespace ItemVisitor
 		static constexpr uint64_t WEAPON_ONEHANDED_INDEX = 0;
 		static constexpr uint64_t WEAPON_TWOHANDED_INDEX = 1;
 		static constexpr uint64_t WEAPON_RANGED_INDEX = 2;
+		static constexpr uint64_t WEAPON_STAFF_INDEX = 3;
 
-		static constexpr uint64_t WEAPON_UNEQUIPPED_START = 3;
+		static constexpr uint64_t WEAPON_UNEQUIPPED_START = 4;
 
-		static constexpr uint64_t ARRAY_WEAPON_SIZE = 6;
+		static constexpr uint64_t ARRAY_WEAPON_SIZE = 8;
 
 		// Ammo definitions
 		static constexpr uint64_t AMMO_START_INDEX = WEAPON_START_INDEX + ARRAY_WEAPON_SIZE;
