@@ -43,24 +43,39 @@ namespace Events
 		using Control = RE::BSEventNotifyControl;
 		
 		const auto ui = RE::UI::GetSingleton();
-		if (!a_event || !a_event->opening || !ui) {
+		if (!a_event || !ui) {
 			CurrentMenu = ""sv;
 			return Control::kContinue;
 		}
 
 		const auto eventName = a_event->menuName;
-		if (eventName != RE::BarterMenu::MENU_NAME && 
-			eventName != RE::ContainerMenu::MENU_NAME &&
-			eventName != RE::InventoryMenu::MENU_NAME &&
-			eventName != RE::CursorMenu::MENU_NAME) {
-			CurrentMenu = ""sv;
-			return Control::kContinue;
-		}
 
 		// When switching from a container view to your inventory view (container menu, barter menu)
 		// you go into a magical land known as "Bad Design Decisions" that internally is called
 		// cursor menu.
-		CurrentMenu = eventName == RE::CursorMenu::MENU_NAME ? CurrentMenu : eventName;
+		CurrentMenu = 
+			eventName == RE::CursorMenu::MENU_NAME ||
+			eventName == RE::Console::MENU_NAME ?
+				CurrentMenu : eventName;
+
+		if (a_event->opening) {
+			if (CurrentMenu != RE::BarterMenu::MENU_NAME &&
+				CurrentMenu != RE::ContainerMenu::MENU_NAME &&
+				CurrentMenu != RE::InventoryMenu::MENU_NAME) {
+				CurrentMenu = ""sv;
+				return Control::kContinue;
+			}
+		}
+		else {
+			if (eventName != RE::CursorMenu::MENU_NAME &&
+				eventName != RE::Console::MENU_NAME &&
+				(CurrentMenu == RE::BarterMenu::MENU_NAME ||
+				CurrentMenu == RE::ContainerMenu::MENU_NAME ||
+				CurrentMenu == RE::InventoryMenu::MENU_NAME)) {
+				CurrentMenu = ""sv;
+				return Control::kContinue;
+			}
+		}
 
 		auto* hookManager = Hooks::BestInClassListener::GetSingleton();
 		if (hookManager) {
