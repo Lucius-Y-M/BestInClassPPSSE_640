@@ -114,20 +114,26 @@ namespace Hooks
 	}
 
 	void BestInClassListener::InvalidateListData::ThunkInventory(void* a1, void* a2, void* a3) {
-		(void)a1;
-		(void)a2;
-		(void)a3;
+		auto* menuListener = Events::MenuListener::GetSingleton();
+		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
+		if (currentMenu.empty()) {
+			_funcInventory(a1, a2, a3);
+		}
 	}
 
 	void BestInClassListener::InvalidateListData::ThunkContainer(void* a1, void* a2, void* a3) {
-		(void)a1;
-		(void)a2;
-		(void)a3;
+		auto* menuListener = Events::MenuListener::GetSingleton();
+		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
+		if (currentMenu.empty()) {
+			_funcContainer(a1, a2, a3);
+		}
 	}
 
 	void BestInClassListener::InvalidateListData::ThunkBarter(void* a1, void* a2, void* a3) {
-		(void)a1;
-		(void)a2;
-		(void)a3;
+		auto* menuListener = Events::MenuListener::GetSingleton();
+		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
+		if (currentMenu.empty()) {
+			_funcBarter(a1, a2, a3);
+		}
 	}
 }
