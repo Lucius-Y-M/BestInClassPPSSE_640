@@ -69,6 +69,7 @@ namespace Events
 		else {
 			if (eventName != RE::CursorMenu::MENU_NAME &&
 				eventName != RE::Console::MENU_NAME &&
+				eventName != RE::BookMenu::MENU_NAME &&
 				(CurrentMenu == RE::BarterMenu::MENU_NAME ||
 				CurrentMenu == RE::ContainerMenu::MENU_NAME ||
 				CurrentMenu == RE::InventoryMenu::MENU_NAME)) {
