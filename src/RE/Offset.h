@@ -15,6 +15,11 @@ namespace RE
 			constexpr auto EquipItem = REL::ID(51133);
 		}
 
+		namespace GFxValue
+		{
+			constexpr auto Invoke = REL::ID(82640);
+		}
+
 		namespace InventoryMenu
 		{
 			constexpr auto SetBestInClass = REL::ID(51866);

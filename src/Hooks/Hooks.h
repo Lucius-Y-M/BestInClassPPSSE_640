@@ -49,9 +49,15 @@ namespace Hooks
 		struct InvalidateListData
 		{
 			static void Install();
-			static void ThunkInventory(void* a1, void* a2, void* a3);
-			static void ThunkContainer(void* a1, void* a2, void* a3);
-			static void ThunkBarter(void* a1, void* a2, void* a3);
+			static void ThunkInventory(RE::GFxMovieView* a_list,
+				const char* a_methodName,
+				void* a_responseArgs);
+			static void ThunkContainer(RE::GFxMovieView* a_list,
+				const char* a_methodName,
+				void* a_responseArgs);
+			static void ThunkBarter(RE::GFxMovieView* a_list,
+				const char* a_methodName,
+				void* a_responseArgs);
 
 			inline static std::ptrdiff_t offsetInventory{ 0x452 };
 			inline static std::ptrdiff_t offsetContainer{ 0x53c };

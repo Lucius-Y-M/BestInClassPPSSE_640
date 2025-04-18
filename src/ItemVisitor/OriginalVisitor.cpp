@@ -1,5 +1,7 @@
 #include "OriginalVisitor.h"
 
+#include "RE/Misc.h"
+
 namespace OriginalVisitor
 {
 	ItemListVisitor::ItemListVisitor(const RE::BSFixedString& a_menuName, bool a_skyUIPresent) {
@@ -252,8 +254,7 @@ namespace OriginalVisitor
 			return;
 		}
 
-		RE::GFxValue entryList;
-		RE::GFxValue menuRoot;
+		RE::ItemList* menuList = nullptr;
 		
 		if (menuName == RE::BarterMenu::MENU_NAME) {
 			auto menu = ui->GetMenu<RE::BarterMenu>();
@@ -261,7 +262,7 @@ namespace OriginalVisitor
 				logger::error("Failed to get menu."sv);
 				return;
 			}
-			menuRoot = menu->root;
+			menuList = menu->itemList;
 		}
 		else if (menuName == RE::ContainerMenu::MENU_NAME) {
 			auto menu = ui->GetMenu<RE::ContainerMenu>();
@@ -269,7 +270,7 @@ namespace OriginalVisitor
 				logger::error("Failed to get menu."sv);
 				return;
 			}
-			menuRoot = menu->root;
+			menuList = menu->itemList;
 		}
 		else {
 			auto menu = ui->GetMenu<RE::InventoryMenu>();
@@ -277,35 +278,14 @@ namespace OriginalVisitor
 				logger::error("Failed to get menu."sv);
 				return;
 			}
-			menuRoot = menu->root;
+			menuList = menu->itemList;
 		}
-
-		if (menuRoot.IsUndefined() || menuRoot.IsNull()) {
-			logger::error("Failed to get menu root."sv);
+		if (!menuList || !menuList->view) {
+			logger::error("Failed to get menu list view - old method"sv);
 			return;
 		}
 
-		if (skyUIPresent) {
-			if (!menuRoot.GetMember("inventoryLists", &entryList)) {
-				logger::error("Failed to get entry list element."sv);
-				return;
-			}
-		}
-		else {
-			if (!menuRoot.GetMember("InventoryLists_mc", &entryList)) {
-				logger::error("Failed to get InventoryLists_mc element."sv);
-				return;
-			}
-		}
-
-		if (entryList.IsUndefined() || entryList.IsNull()) {
-			logger::error("Failed to get entry list element."sv);
-			return;
-		}
-
-		if (!entryList.Invoke("InvalidateListData")) {
-			logger::error("Failed to invoke function."sv);
-			return;
-		}
+		auto response = RE::FxResponseArgs<0>();
+		RE::InvalidateListData(menuList->view.get(), "InvalidateListData", response);
 	}
 }

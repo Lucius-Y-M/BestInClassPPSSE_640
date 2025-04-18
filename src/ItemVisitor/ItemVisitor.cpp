@@ -2,6 +2,7 @@
 
 #include "OriginalVisitor.h"
 #include "Events/Events.h"
+#include "RE/Misc.h"
 #include "Settings/INISettings.h"
 
 namespace ItemVisitor
@@ -396,16 +397,14 @@ namespace ItemVisitor
 			return;
 		}
 
-		RE::GFxValue entryList;
-		RE::GFxValue menuRoot;
-
+		RE::ItemList* itemList = nullptr;
 		if (m_menuName == RE::BarterMenu::MENU_NAME) {
 			auto menu = ui->GetMenu<RE::BarterMenu>();
 			if (!menu) {
 				logger::error("Failed to get menu."sv);
 				return;
 			}
-			menuRoot = menu->root;
+			itemList = menu->itemList;
 		}
 		else if (m_menuName == RE::ContainerMenu::MENU_NAME) {
 			auto menu = ui->GetMenu<RE::ContainerMenu>();
@@ -413,7 +412,7 @@ namespace ItemVisitor
 				logger::error("Failed to get menu."sv);
 				return;
 			}
-			menuRoot = menu->root;
+			itemList = menu->itemList;
 		}
 		else {
 			auto menu = ui->GetMenu<RE::InventoryMenu>();
@@ -421,36 +420,16 @@ namespace ItemVisitor
 				logger::error("Failed to get menu."sv);
 				return;
 			}
-			menuRoot = menu->root;
+			itemList = menu->itemList;
 		}
 
-		if (menuRoot.IsUndefined() || menuRoot.IsNull()) {
-			logger::error("Failed to get menu root."sv);
+		if (!itemList || !itemList->view) {
+			logger::error("ItemList pointer is null, this is likely an error."sv);
 			return;
 		}
 
-		if (skyUIPresent) {
-			if (!menuRoot.GetMember("inventoryLists", &entryList)) {
-				logger::error("Failed to get entry list element."sv);
-				return;
-			}
-		}
-		else {
-			if (!menuRoot.GetMember("InventoryLists_mc", &entryList)) {
-				logger::error("Failed to get InventoryLists_mc element."sv);
-				return;
-			}
-		}
-
-		if (entryList.IsUndefined() || entryList.IsNull()) {
-			logger::error("Failed to get entry list element."sv);
-			return;
-		}
-
-		if (!entryList.Invoke("InvalidateListData")) {
-			logger::error("Failed to invoke function."sv);
-			return;
-		}
+		auto response = RE::FxResponseArgs<0>();
+		RE::InvalidateListData(itemList->view.get(), "InvalidateListData", response);
 	}
 
 	void ItemListVisitor::EvaluateArmor(RE::TESObjectARMO* a_armor,

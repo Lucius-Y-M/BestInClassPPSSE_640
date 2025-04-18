@@ -113,27 +113,33 @@ namespace Hooks
 		_funcInventory = trampoline.write_call<5>(targetInventory.address(), &ThunkInventory);
 	}
 
-	void BestInClassListener::InvalidateListData::ThunkInventory(void* a1, void* a2, void* a3) {
+	void BestInClassListener::InvalidateListData::ThunkInventory(RE::GFxMovieView* a_list,
+		const char* a_methodName,
+		void* a_responseArgs) {
 		auto* menuListener = Events::MenuListener::GetSingleton();
 		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
 		if (currentMenu.empty()) {
-			_funcInventory(a1, a2, a3);
+			_funcInventory(a_list, a_methodName, a_responseArgs);
 		}
 	}
 
-	void BestInClassListener::InvalidateListData::ThunkContainer(void* a1, void* a2, void* a3) {
+	void BestInClassListener::InvalidateListData::ThunkContainer(RE::GFxMovieView* a_list,
+		const char* a_methodName,
+		void* a_responseArgs) {
 		auto* menuListener = Events::MenuListener::GetSingleton();
 		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
 		if (currentMenu.empty()) {
-			_funcContainer(a1, a2, a3);
+			_funcContainer(a_list, a_methodName, a_responseArgs);
 		}
 	}
 
-	void BestInClassListener::InvalidateListData::ThunkBarter(void* a1, void* a2, void* a3) {
+	void BestInClassListener::InvalidateListData::ThunkBarter(RE::GFxMovieView* a_list,
+		const char* a_methodName,
+		void* a_responseArgs) {
 		auto* menuListener = Events::MenuListener::GetSingleton();
 		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
 		if (currentMenu.empty()) {
-			_funcBarter(a1, a2, a3);
+			_funcBarter(a_list, a_methodName, a_responseArgs);
 		}
 	}
 }
