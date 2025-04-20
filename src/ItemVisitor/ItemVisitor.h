@@ -13,7 +13,7 @@ namespace ItemVisitor
 		void Dispose() override;
 
 		bool PreloadForms();
-		void QueueTask();
+		void QueueTask(const RE::BSFixedString& a_menuName);
 
 		ItemListVisitor(const ItemListVisitor&) = delete;
 		ItemListVisitor(ItemListVisitor&&) = delete;

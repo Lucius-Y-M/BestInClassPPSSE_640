@@ -5,7 +5,7 @@ option(FULL_RELEASE "Finalizes the build, compressing everything into a BSA." OF
 # -------- Project ----------
 project(
 	BestInClassPPSSE
-	VERSION 2.0.2
+	VERSION 2.0.3
 	LANGUAGES CXX
 )
 

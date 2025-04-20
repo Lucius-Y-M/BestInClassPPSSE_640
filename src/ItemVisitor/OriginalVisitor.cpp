@@ -1,11 +1,11 @@
 #include "OriginalVisitor.h"
 
+#include "ListInvalidator/ListInvalidator.h"
 #include "RE/Misc.h"
 
 namespace OriginalVisitor
 {
-	ItemListVisitor::ItemListVisitor(const RE::BSFixedString& a_menuName, bool a_skyUIPresent) {
-		skyUIPresent = a_skyUIPresent;
+	ItemListVisitor::ItemListVisitor(const RE::BSFixedString& a_menuName) {
 		menuName = a_menuName;
 	}
 
@@ -249,43 +249,9 @@ namespace OriginalVisitor
 			}
 		}
 
-		auto* ui = RE::UI::GetSingleton();
-		if (!ui) {
-			return;
+		auto* invalidator = ItemVisitor::ItemListInvalidator::GetSingleton();
+		if (invalidator) {
+			invalidator->QueueTask(menuName);
 		}
-
-		RE::ItemList* menuList = nullptr;
-		
-		if (menuName == RE::BarterMenu::MENU_NAME) {
-			auto menu = ui->GetMenu<RE::BarterMenu>();
-			if (!menu) {
-				logger::error("Failed to get menu."sv);
-				return;
-			}
-			menuList = menu->itemList;
-		}
-		else if (menuName == RE::ContainerMenu::MENU_NAME) {
-			auto menu = ui->GetMenu<RE::ContainerMenu>();
-			if (!menu) {
-				logger::error("Failed to get menu."sv);
-				return;
-			}
-			menuList = menu->itemList;
-		}
-		else {
-			auto menu = ui->GetMenu<RE::InventoryMenu>();
-			if (!menu) {
-				logger::error("Failed to get menu."sv);
-				return;
-			}
-			menuList = menu->itemList;
-		}
-		if (!menuList || !menuList->view) {
-			logger::error("Failed to get menu list view - old method"sv);
-			return;
-		}
-
-		auto response = RE::FxResponseArgs<0>();
-		RE::InvalidateListData(menuList->view.get(), "InvalidateListData", response);
 	}
 }

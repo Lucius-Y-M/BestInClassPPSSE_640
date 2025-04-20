@@ -27,7 +27,7 @@ namespace OriginalVisitor {
 	public:
 		// SeaSparrow: The original fetches the item list when the task is created, not ran.
 		// this led to some crashes.
-		explicit ItemListVisitor(const RE::BSFixedString& a_menuName, bool a_skyUIPresent);
+		explicit ItemListVisitor(const RE::BSFixedString& a_menuName);
 
 		~ItemListVisitor() = default;
 
@@ -54,7 +54,5 @@ namespace OriginalVisitor {
 		RE::BSFixedString menuName{ "" };
 		RE::BSTArray<RE::ItemList::Item*> _list{};
 		BestValueStorage _bestStore;
-
-		bool skyUIPresent{ false };
 	};
 }

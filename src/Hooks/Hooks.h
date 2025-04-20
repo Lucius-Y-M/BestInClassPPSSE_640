@@ -7,7 +7,8 @@ namespace Hooks
 	public:
 		static BestInClassListener* GetSingleton();
 		void                        Install();
-		void                        SetMemberIfBestInClass();
+		void                        ProcessEquipEvent();
+		void                        SetMemberIfBestInClass(const RE::BSFixedString& a_menuName);
 
 		BestInClassListener(const BestInClassListener&) = delete;
 		BestInClassListener(BestInClassListener&&) = delete;
@@ -22,7 +23,7 @@ namespace Hooks
 		struct BestInInventory
 		{
 			static void Install();
-			static void Thunk(void* a1);
+			static void Thunk(RE::InventoryMenu* a_this);
 
 			inline static std::ptrdiff_t offset{ 0x400 };
 			inline static REL::Relocation<decltype(&Thunk)> _func;
@@ -31,7 +32,7 @@ namespace Hooks
 		struct BestInContainer
 		{
 			static void Install();
-			static void Thunk(void* a1);
+			static void Thunk(RE::ContainerMenu* a_this);
 
 			inline static std::ptrdiff_t offset{ 0x4CE };
 			inline static REL::Relocation<decltype(&Thunk)> _func;
@@ -40,7 +41,7 @@ namespace Hooks
 		struct BestInBarter
 		{
 			static void Install();
-			static void Thunk(void* a1);
+			static void Thunk(RE::BarterMenu* a_this);
 
 			inline static std::ptrdiff_t offset{ 0x300 };
 			inline static REL::Relocation<decltype(&Thunk)> _func;
@@ -67,6 +68,8 @@ namespace Hooks
 			inline static REL::Relocation<decltype(&ThunkInventory)> _funcContainer;
 			inline static REL::Relocation<decltype(&ThunkInventory)> _funcBarter;
 		};
+
+		RE::BSFixedString lastMenuName{ "" };
 	};
 
 	void Install();

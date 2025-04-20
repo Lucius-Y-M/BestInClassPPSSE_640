@@ -2,6 +2,7 @@
 
 #include "Events/Events.h"
 #include "ItemVisitor/ItemVisitor.h"
+#include "ListInvalidator/ListInvalidator.h"
 #include "RE/Offset.h"
 
 #undef GetObject
@@ -25,12 +26,18 @@ namespace Hooks
 		InvalidateListData::Install();
 	}
 
-	void BestInClassListener::SetMemberIfBestInClass() {
+	void BestInClassListener::ProcessEquipEvent() {
+		SetMemberIfBestInClass(lastMenuName);
+	}
+
+	void BestInClassListener::SetMemberIfBestInClass(const RE::BSFixedString& a_menuName) {
 		auto* visitor = ItemVisitor::ItemListVisitor::GetSingleton();
 		if (!visitor) {
+			lastMenuName = "";
 			return;
 		}
-		visitor->QueueTask();
+		visitor->QueueTask(a_menuName);
+		lastMenuName = a_menuName;
 	}
 
 	void BestInClassListener::BestInInventory::Install() {
@@ -63,34 +70,34 @@ namespace Hooks
 		_func = trampoline.write_call<5>(target.address(), &Thunk);
 	}
 
-	void BestInClassListener::BestInInventory::Thunk(void* a1) {
-		(void)a1;
+	void BestInClassListener::BestInInventory::Thunk(RE::InventoryMenu* a_this) {
 		auto* hookManager = BestInClassListener::GetSingleton();
 		if (!hookManager) {
+			_func(a_this);
 			logger::error("Best In Class Listerner failed to get manager singleton."sv);
 			return;
 		}
-		hookManager->SetMemberIfBestInClass();
+		hookManager->SetMemberIfBestInClass(a_this->MENU_NAME);
 	}
 
-	void BestInClassListener::BestInContainer::Thunk(void* a1) {
-		(void)a1;
+	void BestInClassListener::BestInContainer::Thunk(RE::ContainerMenu* a_this) {
 		auto* hookManager = BestInClassListener::GetSingleton();
 		if (!hookManager) {
+			_func(a_this);
 			logger::error("Best In Class Listerner failed to get manager singleton."sv);
 			return;
 		}
-		hookManager->SetMemberIfBestInClass();
+		hookManager->SetMemberIfBestInClass(a_this->MENU_NAME);
 	}
 
-	void BestInClassListener::BestInBarter::Thunk(void* a1) {
-		(void)a1;
+	void BestInClassListener::BestInBarter::Thunk(RE::BarterMenu* a_this) {
 		auto* hookManager = BestInClassListener::GetSingleton();
 		if (!hookManager) {
+			_func(a_this);
 			logger::error("Best In Class Listerner failed to get manager singleton."sv);
 			return;
 		}
-		hookManager->SetMemberIfBestInClass();
+		hookManager->SetMemberIfBestInClass(a_this->MENU_NAME);
 	}
 
 	void BestInClassListener::InvalidateListData::Install() {
@@ -116,9 +123,12 @@ namespace Hooks
 	void BestInClassListener::InvalidateListData::ThunkInventory(RE::GFxMovieView* a_list,
 		const char* a_methodName,
 		void* a_responseArgs) {
-		auto* menuListener = Events::MenuListener::GetSingleton();
-		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
-		if (currentMenu.empty()) {
+		auto* invalidator = ItemVisitor::ItemListInvalidator::GetSingleton();
+		if (invalidator) {
+			invalidator->QueueTask(RE::InventoryMenu::MENU_NAME);
+		}
+		else {
+			logger::error("Failed to get internal invalidator");
 			_funcInventory(a_list, a_methodName, a_responseArgs);
 		}
 	}
@@ -126,9 +136,12 @@ namespace Hooks
 	void BestInClassListener::InvalidateListData::ThunkContainer(RE::GFxMovieView* a_list,
 		const char* a_methodName,
 		void* a_responseArgs) {
-		auto* menuListener = Events::MenuListener::GetSingleton();
-		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
-		if (currentMenu.empty()) {
+		auto* invalidator = ItemVisitor::ItemListInvalidator::GetSingleton();
+		if (invalidator) {
+			invalidator->QueueTask(RE::ContainerMenu::MENU_NAME);
+		}
+		else {
+			logger::error("Failed to get internal invalidator");
 			_funcContainer(a_list, a_methodName, a_responseArgs);
 		}
 	}
@@ -136,9 +149,12 @@ namespace Hooks
 	void BestInClassListener::InvalidateListData::ThunkBarter(RE::GFxMovieView* a_list,
 		const char* a_methodName,
 		void* a_responseArgs) {
-		auto* menuListener = Events::MenuListener::GetSingleton();
-		auto currentMenu = menuListener ? menuListener->GetCurrentMenuName() : "";
-		if (currentMenu.empty()) {
+		auto* invalidator = ItemVisitor::ItemListInvalidator::GetSingleton();
+		if (invalidator) {
+			invalidator->QueueTask(RE::BarterMenu::MENU_NAME);
+		}
+		else {
+			logger::error("Failed to get internal invalidator");
 			_funcBarter(a_list, a_methodName, a_responseArgs);
 		}
 	}

@@ -1,7 +1,7 @@
 #include "ItemVisitor.h"
 
 #include "OriginalVisitor.h"
-#include "Events/Events.h"
+#include "ListInvalidator/ListInvalidator.h"
 #include "RE/Misc.h"
 #include "Settings/INISettings.h"
 
@@ -97,6 +97,11 @@ namespace ItemVisitor
 	}
 
 	void ItemListVisitor::Dispose() {
+		auto* invalidator = ItemVisitor::ItemListInvalidator::GetSingleton();
+		if (invalidator) {
+			invalidator->QueueTask(m_menuName);
+		}
+
 		m_menuName = "";
 		queued = false;
 		_list.clear();
@@ -240,35 +245,24 @@ namespace ItemVisitor
 		return true;
 	}
 
-	void ItemListVisitor::QueueTask() {
-		if (originalFunctionality) {
-			auto* menuHandler = Events::MenuListener::GetSingleton();
-			m_menuName = menuHandler ? menuHandler->GetCurrentMenuName() : "";
-			if (m_menuName.empty() || (
-				m_menuName != RE::InventoryMenu::MENU_NAME &&
-				m_menuName != RE::ContainerMenu::MENU_NAME &&
-				m_menuName != RE::BarterMenu::MENU_NAME)) {
-				return;
-			}
+	void ItemListVisitor::QueueTask(const RE::BSFixedString& a_menuName) {
+		if (a_menuName.empty() || (
+			a_menuName != RE::InventoryMenu::MENU_NAME &&
+			a_menuName != RE::ContainerMenu::MENU_NAME &&
+			a_menuName != RE::BarterMenu::MENU_NAME)) {
+			return;
+		}
 
+		if (originalFunctionality) {
 			SKSE::GetTaskInterface()->
 				AddTask(reinterpret_cast<::TaskDelegate*>
-					(new OriginalVisitor::ItemListVisitor(m_menuName, skyUIPresent)));
+					(new OriginalVisitor::ItemListVisitor(a_menuName)));
 		}
 		else {
 			if (queued) {
 				return;
 			}
-
-			auto* menuHandler = Events::MenuListener::GetSingleton();
-			m_menuName = menuHandler ? menuHandler->GetCurrentMenuName() : "";
-			if (m_menuName.empty() || (
-				m_menuName != RE::InventoryMenu::MENU_NAME &&
-				m_menuName != RE::ContainerMenu::MENU_NAME &&
-				m_menuName != RE::BarterMenu::MENU_NAME)) {
-				return;
-			}
-
+			m_menuName = a_menuName;
 			queued = true;
 			SKSE::GetTaskInterface()->AddTask(reinterpret_cast<::TaskDelegate*>(this));
 		}
@@ -390,46 +384,6 @@ namespace ItemVisitor
 			}
 			item->obj.SetMember("bestInClass", true);
 		}
-
-		// InvalidateListData
-		auto* ui = RE::UI::GetSingleton();
-		if (!ui) {
-			return;
-		}
-
-		RE::ItemList* itemList = nullptr;
-		if (m_menuName == RE::BarterMenu::MENU_NAME) {
-			auto menu = ui->GetMenu<RE::BarterMenu>();
-			if (!menu) {
-				logger::error("Failed to get menu."sv);
-				return;
-			}
-			itemList = menu->itemList;
-		}
-		else if (m_menuName == RE::ContainerMenu::MENU_NAME) {
-			auto menu = ui->GetMenu<RE::ContainerMenu>();
-			if (!menu) {
-				logger::error("Failed to get menu."sv);
-				return;
-			}
-			itemList = menu->itemList;
-		}
-		else {
-			auto menu = ui->GetMenu<RE::InventoryMenu>();
-			if (!menu) {
-				logger::error("Failed to get menu."sv);
-				return;
-			}
-			itemList = menu->itemList;
-		}
-
-		if (!itemList || !itemList->view) {
-			logger::error("ItemList pointer is null, this is likely an error."sv);
-			return;
-		}
-
-		auto response = RE::FxResponseArgs<0>();
-		RE::InvalidateListData(itemList->view.get(), "InvalidateListData", response);
 	}
 
 	void ItemListVisitor::EvaluateArmor(RE::TESObjectARMO* a_armor,
