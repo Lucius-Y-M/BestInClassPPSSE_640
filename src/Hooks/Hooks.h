@@ -34,7 +34,7 @@ namespace Hooks
 			static void Install();
 			static void Thunk(RE::ContainerMenu* a_this);
 
-			inline static std::ptrdiff_t offset{ 0x4CE };
+			inline static std::ptrdiff_t offset{ 0x49E };	// 1130+ = 0x4CE; this is a crucial diff
 			inline static REL::Relocation<decltype(&Thunk)> _func;
 		};
 
