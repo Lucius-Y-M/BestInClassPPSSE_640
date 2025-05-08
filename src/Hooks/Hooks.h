@@ -61,7 +61,7 @@ namespace Hooks
 				void* a_responseArgs);
 
 			inline static std::ptrdiff_t offsetInventory{ 0x452 };
-			inline static std::ptrdiff_t offsetContainer{ 0x53c };
+			inline static std::ptrdiff_t offsetContainer{ 0x50C /* 1130+ = 0x53C */  };
 			inline static std::ptrdiff_t offsetBarter{ 0x36d };
 
 			inline static REL::Relocation<decltype(&ThunkInventory)> _funcInventory;
